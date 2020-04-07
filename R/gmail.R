@@ -9,28 +9,11 @@ gmail_messages_to_tibble <- function(gm_msgs) {
     )
 }
 
-extract_gm_body <- function(gm_msg) {
+format_gm_body <- function(msg) {
+  if (identical(attr(msg, "mime_type"), "text/plain"))
+    return(commonmark::markdown_html(msg))
 
-  body <- gm_body(gm_msg)
-
-  if (length(body) > 0 &&  body != "") {
-    return(body)
-  }
-
-  if (gm_msg$payload$parts[[1]]$mimeType == "multipart/alternative") {
-    body <- gmailr:::base64url_decode_to_char(
-      gm_msg$payload$parts[[1]]$parts[[1]]$body$data
-    )
-    if (!is.null(body) && body != "") {
-      return(body)
-    }
-    stop("don't know this type of email body")
-  }
-
-}
-
-format_gm_body <- function(body) {
-  commonmark::markdown_html(body)
+  msg
 }
 
 convert_base64url <- function(data) {
@@ -57,7 +40,7 @@ extract_gmail_message <- function(gm_msg) {
     date = gm_date(x),
     subject = gm_subject(x),
     id = gm_id(x),
-    body = format_gm_body(extract_gm_body(x)),
+    body = format_gm_body(my_gm_body(x)),
     attached_files = attached_files
   )
 }
@@ -65,10 +48,144 @@ extract_gmail_message <- function(gm_msg) {
 gmail_messages_from_thread <- function(gm_thread_id) {
 
   thrd <- gmailr::gm_thread(id = gm_thread_id)
-  map(
+  purrr::map(
     thrd$messages,
     extract_gmail_message
   )
+
+}
+
+
+
+## my_gm_body <- function(x, type="text/plain", collapse = FALSE, ...) {
+##   is_multipart <- !is.null(x$payload$parts)
+
+##   if (is_multipart) {
+##     if (is.null(type)){
+##       good_parts <- TRUE
+##     } else {
+##       good_parts <- vapply(x$payload$parts, FUN.VALUE = logical(1),
+##         function(part) {
+##           any(
+##             vapply(part$headers, FUN.VALUE = logical(1),
+##               function(header) {
+##                 browser(x)
+##                 identical(tolower(header$name), "content-type") &&
+##                   grepl(type, header$value, ignore.case = TRUE)
+##               })
+##           )
+##         })
+##     }
+
+##     res <-
+##       lapply(x$payload$parts[good_parts],
+##         function(x) {
+##           gmailr:::base64url_decode_to_char(x$body$data)
+##         })
+##   } else { # non_multipart
+##     res <- gmailr:::base64url_decode_to_char(x$payload$body$data)
+##   }
+
+##   if (collapse){
+##     res <- paste0(collapse = "\n", res)
+##   }
+
+##   res
+## }
+
+
+my_gm_body <- function(x, type = "text/html", collapse = FALSE, ...) {
+
+  ## no multipart
+  if (identical(x$payload$mimeType, "text/html")) {
+    msg <- list(
+      data = x$payload$body$data,
+       mime_type = x$payload$mimeType
+     )
+  } else if (identical(x$payload$mimeType, "text/plain")) {
+    msg <- list(
+      data = x$payload$body$data,
+      mime_type = x$payload$mimeType
+    )
+  } else {
+    ## has multipart
+    if (!grepl("^multipart", x$payload$mimeType)) {
+      message("not really multipart!")
+      browser()
+    }
+
+    ## we can now look into the mime type of each part
+    mime_types <- sapply(x$payload$parts, function(p) p$mimeType) #, character(1))
+    if (length(mime_types) == 0) {
+      message("no mime types")
+      browser()
+    }
+    message(paste(mime_types, collapse = "; "))
+
+    txt_content <- grep("^multipart|^text", mime_types)
+
+    if (any(grepl("^multipart", mime_types))) {
+      txt_content <- grep("^multipart", mime_types)
+    } else if (any(grepl("^text", mime_types))) {
+      txt_content <- match(type, mime_types)
+    } else {
+      message("don't know what to do")
+      browser()
+      NULL
+    }
+
+    if (length(txt_content) > 1 || length(txt_content) < 1) {
+      message("issue:multiple matches")
+      browser()
+      NULL
+    }
+
+    msg <- lapply(x$payload$parts[txt_content], function(p) {
+      if (identical(p$mimeType, "multipart/alternative") ||
+            identical(p$mimeType, "multipart/related")) {
+        types <- vapply(p$parts, function(pp) {
+          pp$mimeType
+        }, character(1))
+        pos <- match(type, types)
+        if (is.na(pos)) {
+          warning("mime type ", sQuote(type), " not found in this message.")
+          browser()
+          return(NA_character_)
+        }
+        mt <- types[pos]
+        return(
+          list(
+            data = p$parts[[pos]]$body$data,
+            mime_type = mt
+          )
+        )
+      } else if (identical(p$mimeType, "text/plain") ||
+                   identical(p$mimeType, "text/html")) {
+        return(
+          list(
+            data = p$body$data,
+            mime_type = p$mimeType
+          )
+        )
+      } else {
+        browser()
+        NULL
+      }
+    })
+
+    if (any(sapply(msg, function(m) is.null(m$data)))) browser()
+    if (length(msg) > 1) browser()
+    msg <- msg[[1]]
+  }
+
+  res <- gmailr:::base64url_decode_to_char(msg$data)
+
+  if (collapse) {
+    res <- paste0(res, collapse = "\n")
+  }
+
+  attr(res, "mime_type") <- msg$mime_type
+  res
 
 }
 
@@ -162,7 +279,7 @@ if (FALSE) {
 
   ## TODO
   ##
-  ## - [ ] rewrite gm_body to extract text or html version of multipart message
+  ## - [x] rewrite gm_body to extract text or html version of multipart message
   ## - [ ] figure out how to deal with other people included in the conversation
   ##       (use cc?)
   ## - [ ] create a store cache for each thread, and store success/failures

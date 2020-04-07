@@ -18,4 +18,5 @@ Imports:
     R6,
     lubridate,
     purrr,
-    gmailr
+    gmailr,
+    httr

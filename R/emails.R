@@ -6,15 +6,15 @@
 
 
 ## ## helpscout authentication
-## hs_app <- oauth_app(
-##   "helpscout",
-##   key = "lu47u2YnCiA1Gy5xHY0YDwrSwZJefY8P",
-##   secret = "LPjbYIKQiYelUxhGlMJ4L0WkpUPvuEap"
-## )
+hs_app <- httr::oauth_app(
+  "helpscout",
+  key = "lu47u2YnCiA1Gy5xHY0YDwrSwZJefY8P",
+  secret = "LPjbYIKQiYelUxhGlMJ4L0WkpUPvuEap"
+)
 
-## hs_token <- oauth2.0_token(oauth_endpoint(authorize = "https://secure.helpscout.net/authentication/authorizeClientApplication",  access = "https://api.helpscout.net/v2/oauth2/token"), app = hs_app)
+hs_token <- httr::oauth2.0_token(httr::oauth_endpoint(authorize = "https://secure.helpscout.net/authentication/authorizeClientApplication",  access = "https://api.helpscout.net/v2/oauth2/token"), app = hs_app)
 
-## htoken <- config(token = hs_token)
+htoken <- httr::config(token = hs_token)
 
 test_message <- list(
   subject = "test message 3",
@@ -141,7 +141,7 @@ hs_create_thread <- function(thread, hstoken) {
     path = "/v2/conversations",
     body = body,
     htoken,
-    content_type("application/json; charset=UTF-8")
+    httr::content_type("application/json; charset=UTF-8")
   )
 
   res
