@@ -34,6 +34,7 @@ extract_gmail_message <- function(gm_msg) {
     }
   })
   attached_files <- purrr::discard(attached_files, is.null)
+
   list(
     to =  gm_to(x),
     from = gm_from(x),
@@ -54,45 +55,6 @@ gmail_messages_from_thread <- function(gm_thread_id) {
   )
 
 }
-
-
-
-## my_gm_body <- function(x, type="text/plain", collapse = FALSE, ...) {
-##   is_multipart <- !is.null(x$payload$parts)
-
-##   if (is_multipart) {
-##     if (is.null(type)){
-##       good_parts <- TRUE
-##     } else {
-##       good_parts <- vapply(x$payload$parts, FUN.VALUE = logical(1),
-##         function(part) {
-##           any(
-##             vapply(part$headers, FUN.VALUE = logical(1),
-##               function(header) {
-##                 browser(x)
-##                 identical(tolower(header$name), "content-type") &&
-##                   grepl(type, header$value, ignore.case = TRUE)
-##               })
-##           )
-##         })
-##     }
-
-##     res <-
-##       lapply(x$payload$parts[good_parts],
-##         function(x) {
-##           gmailr:::base64url_decode_to_char(x$body$data)
-##         })
-##   } else { # non_multipart
-##     res <- gmailr:::base64url_decode_to_char(x$payload$body$data)
-##   }
-
-##   if (collapse){
-##     res <- paste0(collapse = "\n", res)
-##   }
-
-##   res
-## }
-
 
 my_gm_body <- function(x, type = "text/html", collapse = FALSE, ...) {
 
@@ -197,15 +159,21 @@ convert_date <- function(gm_datetime) {
 }
 
 extract_email <- function(email_string) {
-  if (!grepl("<", email_string) && !grepl(">", email_string)) {
-    return(email_string)
-  }
 
-  email_pattern <- gregexpr("<(.*?)>", email_string)
-  email_match <- regmatches(email_string, email_pattern)
-  emails <- gsub("<|>", "", unlist(email_match))
+  email_string %>%
+    strsplit(", ") %>%
+    unlist() %>%
+    purrr::map_chr(function(es) {
+      if (!grepl("<", es) && !grepl(">", es)) {
+        return(es)
+      }
 
-  emails
+      email_pattern <- gregexpr("<(.*?)>", es)
+      email_match <- regmatches(es, email_pattern)
+      emails <- gsub("<|>", "", unlist(email_match))
+
+      emails
+    })
 }
 
 initialize_hs_thread <- function(subject, customer_email, created_at) {
@@ -217,9 +185,9 @@ initialize_hs_thread <- function(subject, customer_email, created_at) {
 }
 
 add_message_to_hs_thread <- function(thread, customer_email, text,
-                                     attachments, ...) {
+                                     attachments, cc, ...) {
   thread$add_message(
-    customer_email, text, attachments = attachments, ...
+    customer_email, text, attachments = attachments, cc = cc, ...
   )
 }
 
@@ -245,7 +213,8 @@ convert_gmail_thread <- function(gmail_thread_id) {
         customer_email = extract_email(msg$from),
         text = msg$body,
         created_at = convert_date(msg$date),
-        attachments = msg$attached_files
+        attachments = msg$attached_files,
+        cc = extract_email(msg$to)
       )
     }
   )
@@ -280,7 +249,7 @@ if (FALSE) {
   ## TODO
   ##
   ## - [x] rewrite gm_body to extract text or html version of multipart message
-  ## - [ ] figure out how to deal with other people included in the conversation
+  ## - [x] figure out how to deal with other people included in the conversation
   ##       (use cc?)
   ## - [ ] create a store cache for each thread, and store success/failures
 

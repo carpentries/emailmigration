@@ -66,7 +66,7 @@ HS_thread <- R6::R6Class("HS_thread",
           email = private$customer
         ),
         imported = private$imported,
-        cc = private$cc,
+        cc = I(private$cc),
         bcc = private$bcc,
         text = private$text,
         createdAt = private$created_at,
@@ -97,8 +97,9 @@ HS_conversation <- R6::R6Class("HS_conversation",
       private$hs_mailbox_id <- hs_mailbox_id
       private$created_at <- created_at
     },
-    add_message = function(customer_email, text, attachments, ...) {
-      msg <- HS_thread$new(customer_email, text, attachments = attachments, ...)
+    add_message = function(customer_email, text, attachments, cc, ...) {
+      msg <- HS_thread$new(customer_email, text, attachments = attachments,
+        cc = cc, ...)
       private$threads <- append(
         private$threads,
         list(msg$get())
