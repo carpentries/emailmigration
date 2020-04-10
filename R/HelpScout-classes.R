@@ -67,12 +67,16 @@ HS_thread <- R6::R6Class("HS_thread",
           email = private$customer
         ),
         imported = private$imported,
-        cc = I(private$cc),
         bcc = private$bcc,
         text = private$text,
         createdAt = private$created_at,
         attachments = private$attachments
       )
+
+      if (length(private$cc[!is.na(private$cc)]) > 1 && !is.null(private$cc)) {
+        res$cc <- I(private$cc)
+      }
+
       purrr::discard(res, ~ is.null(.) || length(.) == 0L)
     }
   )
