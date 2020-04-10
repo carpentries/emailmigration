@@ -246,11 +246,4 @@ if (FALSE) {
     }
   )
 
-  ## TODO
-  ##
-  ## - [x] rewrite gm_body to extract text or html version of multipart message
-  ## - [x] figure out how to deal with other people included in the conversation
-  ##       (use cc?)
-  ## - [ ] create a store cache for each thread, and store success/failures
-
 }

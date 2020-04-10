@@ -1,3 +1,4 @@
 .httr-oauth
 .secret
 credentials.json
+/cache/
