@@ -87,7 +87,50 @@ HS_conversation <- R6::R6Class("HS_conversation",
     status = "closed",
     created_at = NA_character_,
     threads = list(),
-    tags = list("email-import")
+    tags = function() {
+      default <- "email-import"
+      if (identical(length(private$threads), 0L)) {
+        return(list(default))
+      }
+
+      all_emails <- purrr::map(
+        private$threads,
+        ~ unlist(c(.$customer$email, .$cc))
+      ) %>%
+        unlist() %>%
+        unique()
+
+      if ("admin-afr@carpentries.org" %in% all_emails) {
+        default <- c("admin-afr", default)
+      }
+
+      if ("admin-au@carpentries.org" %in% all_emails) {
+        default <- c("admin-au", default)
+      }
+
+      if ("admin-ca@carpentries.org" %in% all_emails) {
+        default <- c("admin-ca", default)
+      }
+
+      if ("admin-nordic@carpentries.org" %in% all_emails) {
+        default <- c("admin-nordic", default)
+      }
+
+      if ("admin-nz@carpentries.org" %in% all_emails) {
+        default <- c("admin-nz", default)
+      }
+
+      if ("admin-uk@carpentries.org" %in% all_emails) {
+        default <- c("admin-uk", default)
+      }
+
+      if (identical(length(default), 1L)) {
+        default <- c("admin-unknown", default)
+      }
+
+      as.list(default)
+
+    }
   ),
   public = list(
     initialize = function(conversation_subject, conversation_customer,
@@ -118,7 +161,7 @@ HS_conversation <- R6::R6Class("HS_conversation",
         type = private$type,
         status = private$status,
         threads = private$threads,
-        tags = private$tags
+        tags = private$tags()
       )
     })
 )
