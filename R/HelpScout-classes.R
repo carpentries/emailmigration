@@ -80,7 +80,7 @@ HS_thread <- R6::R6Class("HS_thread",
 HS_conversation <- R6::R6Class("HS_conversation",
   private = list(
     conversation_subject = NA_character_,
-    conversation_customer = "test@test.test",
+    conversation_customer = NA_character_,
     hs_mailbox_id = NA_integer_,
     imported = TRUE,
     type = "email",
