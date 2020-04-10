@@ -84,7 +84,7 @@ HS_thread <- R6::R6Class("HS_thread",
 
 HS_conversation <- R6::R6Class("HS_conversation",
   private = list(
-    conversation_subject = NA_character_,
+    conversation_subject = "(no subject)",
     conversation_customer = NA_character_,
     hs_mailbox_id = NA_integer_,
     imported = TRUE,
@@ -140,7 +140,10 @@ HS_conversation <- R6::R6Class("HS_conversation",
   public = list(
     initialize = function(conversation_subject, conversation_customer,
                           hs_mailbox_id = 213884, created_at) {
-      private$conversation_subject <- conversation_subject
+
+      if (!is.null(conversation_subject) && nchar(conversation_subject) > 0) {
+        private$conversation_subject <- conversation_subject
+      }
       private$conversation_customer <- conversation_customer
       private$hs_mailbox_id <- hs_mailbox_id
       private$created_at <- created_at
