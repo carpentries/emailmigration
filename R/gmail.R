@@ -58,87 +58,63 @@ gmail_messages_from_thread <- function(gm_thread_id) {
 
 my_gm_body <- function(x, type = "text/html", collapse = FALSE, ...) {
 
-  ## no multipart
-  if (identical(x$payload$mimeType, "text/html")) {
-    msg <- list(
-      data = x$payload$body$data,
-       mime_type = x$payload$mimeType
-     )
-  } else if (identical(x$payload$mimeType, "text/plain")) {
-    msg <- list(
-      data = x$payload$body$data,
-      mime_type = x$payload$mimeType
-    )
-  } else {
-    ## has multipart
-    if (!grepl("^multipart", x$payload$mimeType)) {
-      message("not really multipart!")
-      browser()
-    }
-
-    ## we can now look into the mime type of each part
-    mime_types <- sapply(x$payload$parts, function(p) p$mimeType) #, character(1))
-    if (length(mime_types) == 0) {
-      message("no mime types")
-      browser()
-    }
-    message(paste(mime_types, collapse = "; "))
-
-    txt_content <- grep("^multipart|^text", mime_types)
-
-    if (any(grepl("^multipart", mime_types))) {
-      txt_content <- grep("^multipart", mime_types)
-    } else if (any(grepl("^text", mime_types))) {
-      txt_content <- match(type, mime_types)
-    } else {
-      message("don't know what to do")
-      browser()
-      NULL
-    }
-
-    if (length(txt_content) > 1 || length(txt_content) < 1) {
-      message("issue:multiple matches")
-      browser()
-      NULL
-    }
-
-    msg <- lapply(x$payload$parts[txt_content], function(p) {
-      if (identical(p$mimeType, "multipart/alternative") ||
-            identical(p$mimeType, "multipart/related")) {
-        types <- vapply(p$parts, function(pp) {
-          pp$mimeType
-        }, character(1))
-        pos <- match(type, types)
-        if (is.na(pos)) {
-          warning("mime type ", sQuote(type), " not found in this message.")
-          browser()
-          return(NA_character_)
-        }
-        mt <- types[pos]
-        return(
-          list(
-            data = p$parts[[pos]]$body$data,
-            mime_type = mt
-          )
-        )
-      } else if (identical(p$mimeType, "text/plain") ||
-                   identical(p$mimeType, "text/html")) {
-        return(
-          list(
-            data = p$body$data,
-            mime_type = p$mimeType
-          )
+  extract_message_body <- function(xx) {
+    ## no multipart
+    if (identical(xx$mimeType, "text/html")) {
+      if (exists("attachmentId", xx$body)) {
+        msg <- list(
+          data = convert_base64url(
+            gm_attachment(xx$body$attachmentId, x$id)$data
+          ),
+          mime_type = xx$mimeType
         )
       } else {
-        browser()
-        NULL
+        msg <- list(
+          data = xx$body$data,
+          mime_type = xx$mimeType
+        )
       }
-    })
-
-    if (any(sapply(msg, function(m) is.null(m$data)))) browser()
-    if (length(msg) > 1) browser()
-    msg <- msg[[1]]
+    } else if (identical(xx$mimeType, "text/plain")) {
+      msg <- list(
+        data = xx$body$data,
+        mime_type = xx$mimeType
+      )
+    } else if (grepl("^multipart", xx$mimeType)) {
+      ## has multipart
+      msg <- lapply(xx$parts, extract_message_body)
+    } else {
+      msg <- NULL
+    }
+    return(msg)
   }
+
+  msg <- extract_message_body(x$payload)
+  msg <- unlist(msg)
+  data_pos <- names(msg) %in% "data"
+  mime_type_pos <- names(msg) %in% "mime_type"
+
+  msg <- purrr::map2(
+    msg[data_pos],
+    msg[mime_type_pos],
+    ~ list(
+      data = .x,
+      mime_type = .y
+    )
+  )
+
+  mime_types <- vapply(msg, function(.x) .x$mime_type, character(1))
+
+  m <- match(type, mime_types)
+
+  if (is.na(m)) {
+    m <- match("text/plain", mime_types)
+
+    if (is.na(m)) {
+      browser()
+    }
+  }
+
+  msg <- msg[[m]]
 
   res <- gmailr:::base64url_decode_to_char(msg$data)
 
@@ -150,6 +126,8 @@ my_gm_body <- function(x, type = "text/html", collapse = FALSE, ...) {
   res
 
 }
+
+
 
 convert_date <- function(gm_datetime) {
   paste0(
