@@ -229,6 +229,25 @@ convert_gmail_thread <- function(gmail_thread_id) {
 
 }
 
+### Gmail labels ---------------------------------------------------------------
+
+my_gm_modify_thread <- function(id, add_labels = character(0),
+                                remove_labels = character(0),
+                                user_id = "me") {
+  body <- list(
+    addLabelIds = list(add_labels),
+    removeLabelIds = list(remove_labels)
+  )
+  req <- httr::POST(
+    gmailr:::gmail_path(
+      gmailr:::rename(user_id), "threads", id, "modify"
+    ),
+    body = body, encode = "json", gmailr::gm_token())
+  httr::stop_for_status(req)
+  invisible(httr::content(req, "parsed"))
+}
+
+
 ##
 
 if (FALSE) {
