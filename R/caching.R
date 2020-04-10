@@ -1,3 +1,5 @@
+### Gmail threads conversion ---------------------------------------------------
+
 fetch_hook_gmail_threads <- function(key, namespace) {
   convert_gmail_thread(key)
 }
@@ -13,6 +15,9 @@ get_gmail_thread <- function(thread_id, namespace) {
   invisible(store_gmail_threads()$get(thread_id, namespace))
 }
 
+
+
+### HelpSout queries responses -------------------------------------------------
 
 fetch_hook_hs_response <- function(key, namespace) {
   res <- get_gmail_thread(key, namespace)
