@@ -1,4 +1,5 @@
 ## HelpScout    | Gmail
+## -------------|---------
 ## thread       | message
 ## conversation | thread
 
