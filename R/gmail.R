@@ -160,7 +160,11 @@ convert_date <- function(gm_datetime) {
 
 extract_email <- function(email_string) {
 
-  email_string %>%
+  if (is.null(email_string)) {
+    return(NULL)
+  }
+
+  res <- email_string %>%
     strsplit(", ") %>%
     unlist() %>%
     purrr::map_chr(function(es) {
@@ -174,6 +178,8 @@ extract_email <- function(email_string) {
 
       emails
     })
+
+  res[grepl("@", res)]
 }
 
 initialize_hs_thread <- function(subject, customer_email, created_at) {
