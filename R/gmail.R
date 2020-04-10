@@ -249,4 +249,36 @@ if (FALSE) {
     }
   )
 
+  ## Real deal
+  get_all_threads <- function() {
+
+    first_it <- gm_threads()
+    next_token <- first_it[[1]]$nextPageToken
+
+    res <- append(list(), first_it)
+
+    while (length(next_token) > 0) {
+      tmp <- gm_threads(page_token = next_token)
+      res <- append(
+        res, tmp
+      )
+      next_token <- tmp[[1]]$nextPageToken
+      message("next token: ", next_token)
+    }
+
+    res
+  }
+  threads <- get_all_threads()
+
+  threads_ids <- map(
+    threads,
+    ~ map_chr(.$threads, ~ .$id)
+  ) %>%
+    unlist()
+
+  hs_res <- purrr::walk(
+    threads_ids,
+    ~ get_hs_response(., namespace = "v2020-04-10.1")
+  )
+
 }
