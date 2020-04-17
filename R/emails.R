@@ -1,20 +1,3 @@
-## # Configure your app
-## gm_auth_configure(path = "credentials.json")
-
-## # Authenticate with the new cache, store tokens in .secret
-## gm_auth(cache = ".secret")
-
-
-## ## helpscout authentication
-hs_app <- httr::oauth_app(
-  "helpscout",
-  key = "lu47u2YnCiA1Gy5xHY0YDwrSwZJefY8P",
-  secret = "LPjbYIKQiYelUxhGlMJ4L0WkpUPvuEap"
-)
-
-hs_token <- httr::oauth2.0_token(httr::oauth_endpoint(authorize = "https://secure.helpscout.net/authentication/authorizeClientApplication",  access = "https://api.helpscout.net/v2/oauth2/token"), app = hs_app)
-
-htoken <- httr::config(token = hs_token)
 
 test_message <- list(
   subject = "test message 3",
